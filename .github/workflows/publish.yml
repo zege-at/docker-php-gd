@@ -5,12 +5,15 @@ on:
     branches: [ "main", "master" ]
     paths:
       - 'Dockerfile'
-    # Trigger bei Git Tags (z.B. v1.0.1)
     tags:
       - 'v*.*.*'
-  # Trigger wenn ein GitHub Release veröffentlicht wird
   release:
     types: [published]
+  # AUTOMATISIERUNG: Einmal pro Woche (Montag 03:00 UTC)
+  schedule:
+    - cron: '0 3 * * 1'
+  # Erlaubt es, den Build manuell im GitHub Interface zu starten
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -27,7 +30,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Extrahiert Metadaten (Tags/Labels) für Docker
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -35,7 +37,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=semver,pattern={{version}}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.event_name == 'release' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.event_name == 'release' || github.event_name == 'schedule' }}
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -50,6 +52,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          # Nutzt die automatisch generierten Tags von der 'meta' Action
+          # 'pull: true' stellt sicher, dass das aktuellste Basis-Image vom DockerHub geladen wird
+          pull: true
           tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+:x
