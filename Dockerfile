@@ -1,15 +1,29 @@
-FROM php:8.4-fpm-alpine
+FROM php:8.3-fpm-alpine
 
-# Abhängigkeiten für GD (Bilder verarbeiten) installieren
+# Abhängigkeiten installieren (Postgres, Grafik, Zip, Intl)
 RUN apk add --no-cache \
-    freetype-dev \
-    libjpeg-turbo-dev \
+    postgresql-dev \
+    icu-dev \
+    libzip-dev \
     libpng-dev \
-    libwebp-dev
+    libjpeg-turbo-dev \
+    freetype-dev \
+    imagemagick \
+    imagemagick-dev \
+    graphicsmagick \
+    ghostscript
 
-# PHP Extension GD konfigurieren und installieren
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
-    && docker-php-ext-install -j$(nproc) gd
+# PHP Extensions konfigurieren und installieren
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
+        pdo_pgsql \
+        intl \
+        gd \
+        zip \
+        opcache
 
-# Berechtigungen sicherstellen (optional, aber gut für Cache-Ordner)
-RUN chown -R www-data:www-data /var/www/html
+# ImageMagick Policy anpassen (für PDF Verarbeitung in TYPO3 oft nötig)
+# (Optional, falls TYPO3 PDFs generieren/lesen soll)
+RUN sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-7/policy.xml
+
+WORKDIR /var/www/html
