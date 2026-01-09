@@ -9,14 +9,13 @@ on:
       - 'v*.*.*'
   release:
     types: [published]
-  # AUTOMATISIERUNG: Einmal pro Woche (Montag 03:00 UTC)
   schedule:
     - cron: '0 3 * * 1'
-  # Erlaubt es, den Build manuell im GitHub Interface zu starten
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
+  # Wir setzen den Namen hier explizit oder nutzen einfache Anführungszeichen
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
@@ -34,7 +33,8 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${:env.IMAGE_NAME }
+          # Hier nutzen wir eine saubere Struktur für die Tags
           tags: |
             type=semver,pattern={{version}}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.event_name == 'release' || github.event_name == 'schedule' }}
@@ -52,7 +52,6 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          # 'pull: true' stellt sicher, dass das aktuellste Basis-Image vom DockerHub geladen wird
           pull: true
           tags: ${{ steps.meta.outputs.tags }}
-:x
+          labels: ${{ steps.meta.outputs.labels }}
