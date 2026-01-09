@@ -3,9 +3,14 @@ name: Build and Publish PHP-GD Image
 on:
   push:
     branches: [ "main", "master" ]
-    # Baut nur neu, wenn sich das Dockerfile ändert
     paths:
       - 'Dockerfile'
+    # Trigger bei Git Tags (z.B. v1.0.1)
+    tags:
+      - 'v*.*.*'
+  # Trigger wenn ein GitHub Release veröffentlicht wird
+  release:
+    types: [published]
 
 env:
   REGISTRY: ghcr.io
@@ -22,6 +27,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Extrahiert Metadaten (Tags/Labels) für Docker
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.event_name == 'release' }}
+
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
@@ -35,4 +50,6 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          # Nutzt die automatisch generierten Tags von der 'meta' Action
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
