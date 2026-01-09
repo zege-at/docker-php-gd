@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Docker-Abhängigkeiten prüfen
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly" # Prüft einmal pro Woche (z.B. Montag)
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # GitHub Actions prüfen (optional, aber empfohlen)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
