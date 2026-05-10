@@ -13,14 +13,19 @@ RUN apk add --no-cache \
     graphicsmagick \
     ghostscript
 
-# PHP Extensions konfigurieren und installieren
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+# PHP Extensions installieren
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
+    && pecl install imagick \
+    && docker-php-ext-enable imagick \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
         pdo_pgsql \
         intl \
         gd \
         zip \
-        opcache
+        opcache \
+        bcmath \
+    && apk del .build-deps
 
 # ImageMagick Policy anpassen (für PDF Verarbeitung in TYPO3 oft nötig)
 # (Optional, falls TYPO3 PDFs generieren/lesen soll)
