@@ -1,23 +1,38 @@
 FROM php:8.5-fpm-alpine
 
-# Abhängigkeiten installieren (Postgres, Grafik, Zip, Intl, WebP)
+# 1. Nur LAUFZEIT-Abhängigkeiten installieren (Diese bleiben permanent im Image)
 RUN apk add --no-cache \
-    postgresql-dev \
-    icu-dev \
-    libzip-dev \
-    libpng-dev \
-    libjpeg-turbo-dev \
-    libwebp-dev \
-    freetype-dev \
     imagemagick \
-    imagemagick-dev \
     graphicsmagick \
-    ghostscript
+    ghostscript \
+    libpng \
+    libjpeg-turbo \
+    libwebp \
+    freetype \
+    libzip \
+    icu-libs \
+    libpq
 
-# PHP Extensions installieren
-RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
-    && pecl install imagick \
+# 2. Build-Abhängigkeiten temporär installieren, Extensions bauen und sauber aufräumen
+RUN apk add --no-cache --virtual .build-deps \
+        $PHPIZE_DEPS \
+        postgresql-dev \
+        icu-dev \
+        libzip-dev \
+        libpng-dev \
+        libjpeg-turbo-dev \
+        libwebp-dev \
+        freetype-dev \
+        imagemagick-dev \
+        git \
+    # FIX FÜR IMAGICK AUF PHP 8.4/8.5: Von GitHub (develop-Branch) statt veraltetem PECL bauen
+    && git clone https://github.com \
+    && cd imagick \
+    && phpize && ./configure \
+    && make && make install \
     && docker-php-ext-enable imagick \
+    && cd .. && rm -rf imagick \
+    # Standard PHP-Extensions konfigurieren und installieren
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j$(nproc) \
         pdo_pgsql \
@@ -26,9 +41,10 @@ RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
         zip \
         opcache \
         bcmath \
+    # Hier werden JETZT ALLE dev-Pakete sauber entfernt
     && apk del .build-deps
 
-# ImageMagick Policy anpassen (für PDF Verarbeitung in TYPO3 oft nötig)
+# ImageMagick Policy anpassen (für PDF Verarbeitung)
 RUN sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-7/policy.xml
 
 WORKDIR /var/www/html
