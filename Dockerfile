@@ -1,6 +1,6 @@
-FROM php:8.5-fpm-alpine
+FROM php:8.4-fpm-alpine
 
-# 1. Laufzeit-Abhängigkeiten installieren
+# 1. Laufzeit-Abhängigkeiten für TYPO3 installieren
 RUN apk add --no-cache \
     imagemagick \
     graphicsmagick \
@@ -11,10 +11,14 @@ RUN apk add --no-cache \
     freetype \
     libzip \
     icu-libs \
-    libpq
+    libpq \
+    bash \
+    git \
+    curl
 
-# 2. Build-Abhängigkeiten temporär installieren
-RUN apk add --no-cache --virtual .build-deps \
+# 2. Build-Abhängigkeiten temporär installieren, Extensions bauen und aufräumen
+RUN set -ex \
+    && apk add --no-cache --virtual .build-deps \
         $PHPIZE_DEPS \
         postgresql-dev \
         icu-dev \
@@ -24,33 +28,25 @@ RUN apk add --no-cache --virtual .build-deps \
         libwebp-dev \
         freetype-dev \
         imagemagick-dev \
-        git \
-        pkgconf
-
-# 3. Imagick separat klonen und kompilieren (Isolierter Schritt)
-RUN git clone https://github.com/Imagick/imagick.git /tmp/imagick \
-    && cd /tmp/imagick \
-    && phpize \
-    && ./configure \
-    && make \
-    && make install \
+        pkgconf \
+    # Imagick stabil über PECL für PHP 8.4 installieren
+    && pecl install imagick \
     && docker-php-ext-enable imagick \
-    && rm -rf /tmp/imagick
-
-# 4. Standard PHP-Extensions konfigurieren und installieren
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    # GD-Extension konfigurieren und alle TYPO3-Extensions installieren
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j$(nproc) \
         pdo_pgsql \
         intl \
         gd \
         zip \
         opcache \
-        bcmath
+        bcmath \
+        exif \
+    # Temporäre Build-Pakete und PECL-Cache restlos entfernen
+    && apk del .build-deps \
+    && rm -rf /tmp/pear
 
-# 5. Build-Abhängigkeiten in einem finalen Schritt aufräumen
-RUN apk del .build-deps
-
-# ImageMagick Policy anpassen (für PDF Verarbeitung)
+# 3. ImageMagick Policy anpassen (Wichtig für TYPO3 PDF-Vorschauen / Falldown-Rendings)
 RUN sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-7/policy.xml
 
 WORKDIR /var/www/html
