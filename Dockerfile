@@ -25,7 +25,7 @@ RUN apk add --no-cache --virtual .build-deps \
         freetype-dev \
         imagemagick-dev \
         git \
-    # FIX FÜR IMAGICK AUF PHP 8.4/8.5: Von GitHub (develop-Branch) statt veraltetem PECL bauen
+    # Von GitHub (master/develop) statt dem veralteten PECL für PHP 8.5 Kompatibilität bauen
     && git clone https://github.com \
     && cd imagick \
     && phpize && ./configure \
@@ -48,3 +48,4 @@ RUN apk add --no-cache --virtual .build-deps \
 RUN sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-7/policy.xml
 
 WORKDIR /var/www/html
+
