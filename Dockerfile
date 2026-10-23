@@ -25,14 +25,12 @@ RUN apk add --no-cache --virtual .build-deps \
         freetype-dev \
         imagemagick-dev \
         git \
-    # Von GitHub (master/develop) statt dem veralteten PECL für PHP 8.5 Kompatibilität bauen
-    && git clone https://github.com \
+    && git clone https://github.com/Imagick/imagick.git \
     && cd imagick \
     && phpize && ./configure \
     && make && make install \
     && docker-php-ext-enable imagick \
     && cd .. && rm -rf imagick \
-    # Standard PHP-Extensions konfigurieren und installieren
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j$(nproc) \
         pdo_pgsql \
@@ -41,7 +39,6 @@ RUN apk add --no-cache --virtual .build-deps \
         zip \
         opcache \
         bcmath \
-    # Hier werden JETZT ALLE dev-Pakete sauber entfernt
     && apk del .build-deps
 
 # ImageMagick Policy anpassen (für PDF Verarbeitung)
