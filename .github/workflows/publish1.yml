@@ -2,7 +2,7 @@ name: Build and Publish PHP-GD Image
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main", "master", "php-8.4" ]
     paths:
       - 'Dockerfile'
     tags:
