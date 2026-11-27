@@ -1,4 +1,4 @@
-FROM php:8.5-fpm-alpine
+FROM php:8.6-fpm-alpine
 
 # 1. Laufzeit-Abhängigkeiten installieren
 RUN apk add --no-cache \
